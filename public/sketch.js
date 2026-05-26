@@ -304,10 +304,16 @@ function setup() {
   let buttonStormIncrease = createNormalButton2("Inc", 10*m_s, 480+m_meterH+5, m_meterW/2, 25*m_s);
   let buttonStormDecrease = createNormalButton2("Dec", 10*m_s+m_meterW/2, 480+m_meterH+5, m_meterW/2, 25*m_s);
   buttonStormIncrease.mousePressed(() => {
-    if (m_stormMeterValue < 14) m_stormMeterValue += 1;
+    if (m_stormMeterValue < 14) {
+      m_stormMeterValue += 1;
+      update();
+    }
   });
   buttonStormDecrease.mousePressed(() => {
-    if (m_stormMeterValue > 0) m_stormMeterValue -= 1;
+    if (m_stormMeterValue > 0) {
+      m_stormMeterValue -= 1;
+      update();
+    }
   });
 
 }
@@ -772,7 +778,7 @@ function draw() {
   }
 
   // storm meter
-  if (m_players.length < 3) image(m_stormMeterImages[m_smValue], 10*m_s, 480*m_s, m_meterW, m_meterH);
+  if (m_players.length < 3) image(m_stormMeterImages[0], 10*m_s, 480*m_s, m_meterW, m_meterH);
   else                      image(m_stormMeterImages[1], 10*m_s, 480*m_s, m_meterW, m_meterH);
 
   // sand meter indicator
