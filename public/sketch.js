@@ -228,6 +228,7 @@ function setup() {
   m_initButton = createButton('Init: Enter Name');
   m_initButton.mousePressed(initPlayerToServer);
   m_nameInputButton = createInput();
+  // m_nameInputButton.changed(initPlayerToServer);
 
   /////////////////////////////////////////////
   // Radio Buttons for class
@@ -275,9 +276,17 @@ function setup() {
 
   // player get gear buttons
   for (let i = 0; i < 4; i++) {
-    let buttonGetGear = createNormalButton2("Gear", width-2*m_cw, i*height/5, m_bw, m_bh/2);
+    let buttonGetGear = createNormalButton2("Gear", width-1*m_cw, i*height/5, m_bw, m_bh/2);
     buttonGetGear.mousePressed(() => {
       getGear(i);
+    });
+    let buttonIncreaseWater = createNormalButton2("W🔼", width-2.5*m_cw, i*height/5, m_bw, m_bh/2);
+    buttonIncreaseWater.mousePressed(() => {
+      changeWater(i, -5);  // move up the page
+    });
+    let buttonDecreaseWater = createNormalButton2("W🔽", width-2.5*m_cw+m_bw, i*height/5, m_bw, m_bh/2);
+    buttonDecreaseWater.mousePressed(() => {
+      changeWater(i, 5);   // move down the page
     });
   }
 
@@ -345,6 +354,16 @@ function getGear(playerNum) {
   let card = m_decks[DECK_GEAR].dealCard();
   // m_players[playerNum].gearCards.push(card);
   m_decks[playerNum].addCard(card);
+  update();
+}
+
+function changeWater(playerNum, value) {
+  if (playerNum >= m_players.length) return;
+
+  if (value > 0 && m_players[playerNum].waterValue < m_ch-15*m_s) m_players[playerNum].waterValue += value;
+  else if (value < 0 && m_players[playerNum].waterValue > 15*m_s) m_players[playerNum].waterValue += value;
+
+  update();
 }
 
 function createNormalButton2(name, x, y, w, h) {

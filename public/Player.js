@@ -12,6 +12,7 @@ class Player {
     this.seatPos = idx;      // integer
     this.name = name;        // string
     this.class = charClass;  // integer - used as an index into different arrays
+    this.waterValue = 50;    // pixels relative to the top of the player's card
     let letter = m_classNames[this.class][0];
     this.token = new Token(width-3.0*m_cw + m_tokenSize/2, this.seatPos*(height/5) + m_tokenSize/2, m_tokenColors[this.class], letter);
     // this.token = new Token(width-2.0*m_cw + m_bw + m_tokenSize/2, this.seatPos*(height/5) + m_tokenSize, m_tokenColors[this.class])
@@ -36,8 +37,16 @@ class Player {
     card.y = starty+30*m_s;
     card.show();
 
+    // token
     this.token.show();
 
+    // water level
+    let x = startx + 50*m_s;
+    let y = card.y + this.waterValue * m_s;
+    fill(0, 0, 255);
+    circle(x, y, 15*m_s)
+
+    // gear cards
     let divFactor = 1;
     let cards = m_decks[this.seatPos].cards;
     if (cards.length > 3) divFactor = 3/cards.length;  // there's only room for 3 whole cards
@@ -57,6 +66,7 @@ class Player {
     this.seatPos = data.seatPos;
     this.name = data.name;
     this.class = data.class;
+    this.waterValue = data.waterValue;
 
     let token = new Token(0, 0, 0, ' ');
     token.copyFromServerData(data.token, this.seatPos);
