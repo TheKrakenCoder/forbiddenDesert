@@ -169,9 +169,13 @@ function setup() {
   /////////////////////////////////////////////
   
   // socket
-  m_socket = io();
-  console.log('m_socket = ' , m_socket);
-  
+  try {
+    m_socket = io();
+    console.log('m_socket = ' , m_socket);
+  } catch (err) {
+    console.log('io exception ', err);
+    m_socket = null;
+  }  
 
   // For Standalone play, we don't need a socket connection and we don't even have a server running.
   if (m_socket) {
@@ -620,7 +624,7 @@ function initPlayerToServer() {
     }
     m_thisPlayer = m_players[0];
     m_initialized = true;
-    m_socket.close();
+    if (m_socket) m_socket.close();
 
     m_initButton.hide();
     m_nameInputButton.hide();
@@ -736,7 +740,7 @@ function draw() {
   // Hopefully by the time we receive our first message from the socket, we
   // have executed the lie of code below
   // m_players[0].socketId = '/#' + m_socket.id;
-  m_mySocketId = '/#' + m_socket.id;
+  if (m_socket) m_mySocketId = '/#' + m_socket.id;
   
   // background and layout
   image(m_tableBackgroundImage, 0, 0, width, height);
