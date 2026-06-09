@@ -39,7 +39,7 @@ const SET_CLASSES = 0, SET_TILES = 1, SET_STORM = 2, SET_GEAR = 3, SET_METER = 4
 // are selectable
 const DECK_P0_GEAR = 0, DECK_P1_GEAR = 1, DECK_P2_GEAR = 2, DECK_P3_GEAR = 3, DECK_CLASSES = 4, 
       DECK_TILES = 5, DECK_STORM = 6, DECK_STORM_DISCARD = 7, DECK_GEAR = 8, 
-      DECK_GEAR_DISCARD = 9, DECK_NUM_DECKS = 10;
+      DECK_GEAR_DISCARD = 9, DECK_GENERIC = 10, DECK_NUM_DECKS = 11;
 // These are indexes into the array of m_cardBackImages[]
 const BACK_CLASSES = 0, BACK_TILES_NORMAL = 1, BACK_TILES_WATER = 2, BACK_TILES_CRASH = 3, BACK_TILES_SPIRAL = 4, 
       BACK_STORM = 5, BACK_GEAR = 6;
@@ -159,6 +159,9 @@ function setup() {
   for (let i = 0; i < 1; i++) m_decks[DECK_GEAR].addCard(new Card(SET_GEAR, 5, BACK_GEAR, -1));
   m_decks[DECK_GEAR].shuffle();
 
+  // generic deck (currenly only used for meteorologist action)
+  m_decks[DECK_GENERIC] = new Deck(DECK_GENERIC, SET_STORM, BACK_STORM, m_cw, m_ch);
+
   // ship tokens
   for (let i = 0; i < NUM_SHIP_TOKENS; i++) {
     m_shipTokens[i] = new TokenShip(10 + 60*i, 10, i)
@@ -255,28 +258,54 @@ function setup() {
   let buttonFlip = createNormalButton2("Flip Cards", 35*m_s + m_meterW, 480, m_bw, m_bh);
   buttonFlip.mousePressed(flipCards);
 
-  let bsat = createNormalButton2("Sel all tiles", 35*m_s + m_meterW + m_bw, 480, m_bw, m_bh);
-  bsat.mousePressed(function(){
-    console.log('bsat');
-      for (let tile of m_decks[DECK_TILES].cards) tile.selected = true;
-    });
-
-  let buttonAddSand = createNormalButton2("Add Sand", 35*m_s + m_meterW, 480+3*m_bh, m_bw, m_bh);
-  buttonAddSand.mousePressed(addSand);
-  let buttonDelSan = createNormalButton2("Delete Sand", 35*m_s + m_meterW + m_bw, 480+3*m_bh, m_bw, m_bh);
-  buttonDelSan.mousePressed(deleteSand);
-
-  let buttonRemoveGear = createNormalButton2("Delete Gear", 35*m_s + m_meterW + m_bw, 480+2*m_bh, m_bw, m_bh);
+  // let bsat = createNormalButton2("Sel all tiles", 35*m_s + m_meterW + m_bw, 480, m_bw, m_bh);
+  // bsat.mousePressed(function(){
+  //   console.log('bsat');
+  //     for (let tile of m_decks[DECK_TILES].cards) tile.selected = true;
+  //   });
+  let buttonRemoveGear = createNormalButton2("Delete Gear", 35*m_s + m_meterW + m_bw, 480, m_bw, m_bh);
   buttonRemoveGear.mousePressed(removeGear);
 
-  let buttonMoveUp = createNormalButton2("Move Up", 35*m_s + m_meterW, 480+4*m_bh, m_bw, m_bh);
+
+  let buttonAddSand = createNormalButton2("Add Sand", 35*m_s + m_meterW, 480+1*m_bh, m_bw, m_bh);
+  buttonAddSand.mousePressed(addSand);
+  let buttonDelSan = createNormalButton2("Delete Sand", 35*m_s + m_meterW + m_bw, 480+1*m_bh, m_bw, m_bh);
+  buttonDelSan.mousePressed(deleteSand);
+
+  let buttonMoveUp = createNormalButton2("Move Up", 35*m_s + m_meterW, 480+2*m_bh, m_bw, m_bh);
   buttonMoveUp.mousePressed(moveUp);
-  let buttonMoveDown = createNormalButton2("Move Down", 35*m_s + m_meterW + m_bw, 480+4*m_bh, m_bw, m_bh);
+  let buttonMoveDown = createNormalButton2("Move Down", 35*m_s + m_meterW + m_bw, 480+2*m_bh, m_bw, m_bh);
   buttonMoveDown.mousePressed(moveDown);
-  let buttonMoveLeft = createNormalButton2("Move Left", 35*m_s + m_meterW, 480+5*m_bh, m_bw, m_bh);
+  let buttonMoveLeft = createNormalButton2("Move Left", 35*m_s + m_meterW, 480+3*m_bh, m_bw, m_bh);
   buttonMoveLeft.mousePressed(moveLeft);
-  let buttonMoveRight = createNormalButton2("Move Right", 35*m_s + m_meterW + m_bw, 480+5*m_bh, m_bw, m_bh);
+  let buttonMoveRight = createNormalButton2("Move Right", 35*m_s + m_meterW + m_bw, 480+3*m_bh, m_bw, m_bh);
   buttonMoveRight.mousePressed(moveRight);
+
+  // buttons specific to the meterologist
+  let buttonMeteorStormPlay = createNormalButton2("(M)Play Storm", 35*m_s + m_meterW, 480+5*m_bh, m_bw, m_bh);
+  buttonMeteorStormPlay.mousePressed(() => {
+    let card = m_decks[DECK_STORM].dealCard();
+    if (card) {
+      card.facedown=false;
+      m_decks[DECK_GENERIC].addCard(card);
+    }
+  });
+  let buttonMeteorStormTop = createNormalButton2("(M)Top Storm", 35*m_s + m_meterW + m_bw, 480+5*m_bh, m_bw, m_bh);
+  buttonMeteorStormTop.mousePressed(() => {
+    let card = m_decks[DECK_GENERIC].dealCard();
+    if (card) {
+      card.facedown=true;
+      m_decks[DECK_STORM].addCard(card);
+    }
+  });
+  let buttonMeteorStormBottom = createNormalButton2("(M)Bot Storm", 35*m_s + m_meterW, 480+6*m_bh, m_bw, m_bh);
+  buttonMeteorStormBottom.mousePressed(() => {
+    let card = m_decks[DECK_GENERIC].dealCard();
+    if (card) {
+      card.facedown=true;
+      m_decks[DECK_STORM].cards.unshift(card);
+    }
+  });
 
   // player get gear buttons
   for (let i = 0; i < 4; i++) {
@@ -789,6 +818,11 @@ function draw() {
   textSize(16*m_s);
   y += 25*m_s;
   text(m_decks[DECK_GEAR_DISCARD].cards.length, x, y)
+
+  // generic deck
+  x = 275*m_s;
+  y = 0;
+  m_decks[DECK_GENERIC].show(x, y, 1, 0, 0);
 
   // ship
   x = width - 4*m_cw;
