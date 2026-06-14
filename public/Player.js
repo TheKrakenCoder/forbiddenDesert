@@ -61,8 +61,11 @@ class Player {
 
 
   // data: a Player object
-  copyFromServerData(data) {
-    this.socketId = data.socketId;
+  // playerNum: if -1 this is server data, otherwise this is a saved game restore
+  copyFromServerData(data, playerNum = -1) {
+    if (playerNum == -1) this.socketId = data.socketId;
+    else                 this.socketId = m_players[playerNum].socketId;
+    // this.socketId = data.socketId;
     this.seatPos = data.seatPos;
     this.name = data.name;
     this.class = data.class;

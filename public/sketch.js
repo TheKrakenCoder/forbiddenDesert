@@ -28,6 +28,7 @@ let m_meterW = 110;
 let m_meterH = 360;
 let m_s = 1.0;
 let m_numSandLeft = 48;
+let m_savedData, m_saveButton, m_loadButton, m_parseButton, m_restoreButton, m_jsonInput, m_hideSaveButton;
 
 var m_debugSet=-1, m_debugDeck=-1;
 
@@ -207,12 +208,13 @@ function setup() {
     // heartbeat message //
     // data: object containing a Player array and a Table
     m_socket.on('heartbeat', function(data) {
-      if (!m_initialPlayer) return;
-      console.log('heartbeat message: We got ' , data);
-      createPlayersFromServerData(data.players);
-      createDecksFromServerData(data.decks);
-      createShipTokensFromServerData(data.shipTokens);
-      m_numSandLeft = data.numSandLeft;
+      // if (!m_initialPlayer) return;
+      // console.log('heartbeat message: We got ' , data);
+      // createPlayersFromServerData(data.players);
+      // createDecksFromServerData(data.decks);
+      // createShipTokensFromServerData(data.shipTokens);
+      // m_numSandLeft = data.numSandLeft;
+      restoreData(data);
       // createCardArraysFromServerData(data.cardArrays);
       // setMessageFromServerData(data.message);
 
@@ -358,7 +360,65 @@ function setup() {
     }
   });
 
+    // Buttons dealing with save and restore.  These are normally hidden.  They are below the canvas.
+  m_saveButton = createButton("1 Save");
+  m_saveButton.mousePressed(() => saveGame());
+  m_loadButton = createButton("2a Read");
+  m_loadButton.mousePressed(() => readSavedGame());
+  m_parseButton = createButton("2b Parse");
+  m_parseButton.mousePressed(() => parseSavedGame());
+  m_restoreButton = createButton("3 Load");
+  m_restoreButton.mousePressed(() => restoreSavedGame());
+  createDiv();
+  m_jsonInput = createInput("The number of players in the saved game must match the number of players currently in the game.");
+  m_jsonInput.style('width',  '900px');
+  m_jsonInput.style('height', '25px');
+
+  m_hideSaveButton = createButton('Hide');
+  m_hideSaveButton.mousePressed(function(){
+      m_saveButton.hide(); m_loadButton.hide(); m_parseButton.hide(); m_restoreButton.hide(); m_jsonInput.hide(); m_hideSaveButton.hide();
+    });
+  m_saveButton.hide(); m_loadButton.hide(); m_parseButton.hide(); m_restoreButton.hide(); m_jsonInput.hide(); m_hideSaveButton.hide();
+
+
+}  // setup
+
+////////////////////////////////////////////////////////////
+// SAVE and RESTORE functions
+
+// called from heartbeat and from restoreSavedGame
+function restoreData(data, isSavedGame = false) {
+  if (!m_initialPlayer) return;
+  console.log('heartbeat message: We got ' , data);
+  createPlayersFromServerData(data.players, isSavedGame);
+  createDecksFromServerData(data.decks);
+  createShipTokensFromServerData(data.shipTokens);
+  m_numSandLeft = data.numSandLeft;
+
 }
+
+function saveGame() {
+  update(true);
+}
+
+function readSavedGame() {
+  m_savedData = loadJSON('forbiddenDesert.json');
+}
+function parseSavedGame() {
+  m_savedData = JSON.parse(m_jsonInput.value());
+}
+function restoreSavedGame() {
+  console.log('m_savedData = ' , m_savedData);
+  console.log('m_savedData.players = ' , m_savedData.players);
+  
+  restoreData(m_savedData, true);
+  update();
+}
+function showSaveButtons() {
+  m_saveButton.show(); m_loadButton.show(); m_parseButton.show(); m_restoreButton.show(); m_jsonInput.show(); m_hideSaveButton.show();
+}
+
+
 ////////////////////////////////////////////
 // GUI FUNCTIONS
 ////////////////////////////////////////////
@@ -674,15 +734,18 @@ function initPlayerToServer() {
 
 // called when we get a heartbeat from the server
 // data: array of Player objects
-function createPlayersFromServerData(data) {
+function createPlayersFromServerData(data, isSavedGame) {
   console.log('player data = ' , data);
   
   let playersTemp = [];
-  for (p of data) {
+  // for (p of data) {
+  for (let play = 0; play < data.length; play++) {
+    let p = data[play];
     let player = new Player(p.seatPos, p.name, p.class);
     // console.log('heartbeat message: p.seatPos = ' + p.seatPos);
     // console.log('heartbeat message: p.cardY = ' + p.cardY);
-    player.copyFromServerData(p);
+    if (!isSavedGame) player.copyFromServerData(p, -1);
+    else              player.copyFromServerData(p, play);
     playersTemp.push(player);
     // console.log('heartbeat message: player.socketId = ' + player.socketId);
     // console.log('heartbeat message: player.seatPos = ' + player.seatPos);
@@ -733,7 +796,7 @@ function createShipTokensFromServerData(data) {
 }  // createShipTokensFromServerData()
 
 // emit all the players and the table to the server
-function update() {
+function update(isSavedGame = false) {
   if (m_initialized) {
     let msg = m_messageP.html();
     // set some data to unscaled coordinates so that everyone can scale
@@ -759,7 +822,10 @@ function update() {
       shipTokens: m_shipTokens,
       numSandLeft: m_numSandLeft,
     };
-    m_socket.emit('update', data);
+    // m_socket.emit('update', data);
+    if (!isSavedGame) m_socket.emit('update', data);
+    else              saveJSON(data, 'forbiddenDesert.json', true)
+
   }
 }
 
