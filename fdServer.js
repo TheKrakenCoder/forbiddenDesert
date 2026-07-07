@@ -19,6 +19,7 @@ let m_message = "&nbsp";
 let m_decks = [];
 let m_shipTokens = [];
 let m_numSandLeft = 48;
+let m_stormMeterValue = 0;
 // let m_cardArrays = [];
 // let m_firewood = 7;
 // let m_isOpenSeason = false;
@@ -56,6 +57,7 @@ function heartbeat() {
     decks:   m_decks,
     shipTokens: m_shipTokens,
     numSandLeft: m_numSandLeft,
+    stormMeterValue: m_stormMeterValue,
     // cardArrays: m_cardArrays,
     // firewood: m_firewood,
     // isOpenSeason: m_isOpenSeason,
@@ -114,11 +116,22 @@ io.on(
       m_decks   = data.decks;
       m_shipTokens = data.shipTokens,
       m_numSandLeft = data.numSandLeft;
+      m_stormMeterValue = data.stormMeterValue;
       // m_cardArrays = data.cardArrays;
       // m_firewood = data.firewood;
       // m_isOpenSeason = data.isOpenSeason;
       // m_difficulty = data.difficulty;
       heartbeat();
+    });
+
+    socket.on('resetServer', function(data) {
+      io.disconnectSockets();
+      m_players = [];
+      m_decks = [];
+      m_message = "&nbsp";
+      m_shipTokens = [];
+      m_numSandLeft = 48;
+      m_stormMeterValue = 0;
     });
 
     //----------------------------------------------
@@ -141,6 +154,7 @@ io.on(
         if (m_decks)  m_decks = [];
         if (m_shipTokens)  m_shipTokens = [];
         m_numSandLeft = 48;
+        m_stormMeterValue = 0;
         // if (m_cardArrays) m_cardArrays = [];
         // m_firewood = 7;
         // m_isOpenSeason = false;
