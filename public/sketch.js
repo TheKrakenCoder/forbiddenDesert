@@ -7,6 +7,7 @@ const m_classNames = ['Archeologist', 'Climber', 'Explorer', 'Meteorologist', 'N
 const CLASS_NONE = -1, CLASS_ARCHEOLOGIST = 0, CLASS_CLIMBER = 1, CLASS_EXPLORER = 2, CLASS_METEOROLOGIST = 3, CLASS_NAVIGATOR = 4, CLASS_WATER = 5; CLASS_NUM_CLASSES = 6;
 const m_tokenColors = ['orange', 'brown', 'green', 'grey', 'yellow', 'blue'];
 const m_playerBackgroundColors = ['#FBBF77', '#765341', 'lightgreen', 'lightgrey', 'lightyellow', 'lightblue',];
+const TILE_SPACING = 1.09375;
 
 var m_classRadio;
 var m_initButton, m_nameInputButton;
@@ -56,7 +57,6 @@ let m_tableBackgroundImage;
 let m_stormMeterImages = [];
 let m_stormMeterValue = 0; // 768;
 let m_stormMeterDelta = 16.6667;
-let m_smValue = 1;
 
 function preload() {
   m_tableBackgroundImage = loadImage('Assets/TableBackground.jpg');
@@ -257,7 +257,7 @@ function setup() {
 
   ///////////////////////////////////////////////
   // Controls on Canvas
-  let buttonFlip = createNormalButton2("Flip Cards", 35*m_s + m_meterW, 480, m_bw, m_bh);
+  let buttonFlip = createNormalButton2("Flip Tile", 35*m_s + m_meterW, 480, m_bw, m_bh);
   buttonFlip.mousePressed(flipCards);
 
   // let bsat = createNormalButton2("Sel all tiles", 35*m_s + m_meterW + m_bw, 480, m_bw, m_bh);
@@ -265,22 +265,22 @@ function setup() {
   //   console.log('bsat');
   //     for (let tile of m_decks[DECK_TILES].cards) tile.selected = true;
   //   });
-  let buttonRemoveGear = createNormalButton2("Delete Gear", 35*m_s + m_meterW + m_bw, 480, m_bw, m_bh);
+  let buttonRemoveGear = createNormalButton2("Play Gear", 35*m_s + m_meterW + m_bw, 480, m_bw, m_bh);
   buttonRemoveGear.mousePressed(removeGear);
 
 
   let buttonAddSand = createNormalButton2("Add Sand", 35*m_s + m_meterW, 480+1*m_bh, m_bw, m_bh);
   buttonAddSand.mousePressed(addSand);
-  let buttonDelSan = createNormalButton2("Delete Sand", 35*m_s + m_meterW + m_bw, 480+1*m_bh, m_bw, m_bh);
+  let buttonDelSan = createNormalButton2("Clear Sand", 35*m_s + m_meterW + m_bw, 480+1*m_bh, m_bw, m_bh);
   buttonDelSan.mousePressed(deleteSand);
 
-  let buttonMoveUp = createNormalButton2("Move Up", 35*m_s + m_meterW, 480+2*m_bh, m_bw, m_bh);
+  let buttonMoveUp = createNormalButton2("Move 🢁", 35*m_s + m_meterW, 480+2*m_bh, m_bw, m_bh);
   buttonMoveUp.mousePressed(moveUp);
-  let buttonMoveDown = createNormalButton2("Move Down", 35*m_s + m_meterW + m_bw, 480+2*m_bh, m_bw, m_bh);
+  let buttonMoveDown = createNormalButton2("Move 🢃", 35*m_s + m_meterW + m_bw, 480+2*m_bh, m_bw, m_bh);
   buttonMoveDown.mousePressed(moveDown);
-  let buttonMoveLeft = createNormalButton2("Move Left", 35*m_s + m_meterW, 480+3*m_bh, m_bw, m_bh);
+  let buttonMoveLeft = createNormalButton2("Move 🢀", 35*m_s + m_meterW, 480+3*m_bh, m_bw, m_bh);
   buttonMoveLeft.mousePressed(moveLeft);
-  let buttonMoveRight = createNormalButton2("Move Right", 35*m_s + m_meterW + m_bw, 480+3*m_bh, m_bw, m_bh);
+  let buttonMoveRight = createNormalButton2("Move 🢂", 35*m_s + m_meterW + m_bw, 480+3*m_bh, m_bw, m_bh);
   buttonMoveRight.mousePressed(moveRight);
 
   // buttons specific to the meterologist
@@ -309,12 +309,8 @@ function setup() {
     }
   });
 
-  // player get gear buttons
+  // player buttons
   for (let i = 0; i < 4; i++) {
-    let buttonGetGear = createNormalButton2("Gear", width-1*m_cw, i*height/5, m_bw, m_bh/2);
-    buttonGetGear.mousePressed(() => {
-      getGear(i);
-    });
     let buttonIncreaseWater = createNormalButton2("W🔼", width-2.5*m_cw, i*height/5, m_bw, m_bh/2);
     buttonIncreaseWater.mousePressed(() => {
       changeWater(i, -5);  // move up the page
@@ -322,6 +318,14 @@ function setup() {
     let buttonDecreaseWater = createNormalButton2("W🔽", width-2.5*m_cw+m_bw, i*height/5, m_bw, m_bh/2);
     buttonDecreaseWater.mousePressed(() => {
       changeWater(i, 5);   // move down the page
+    });
+    let buttonGetGear = createNormalButton2("Gear", width-2.5*m_cw+2*m_bw, i*height/5, m_bw, m_bh/2);
+    buttonGetGear.mousePressed(() => {
+      getGear(i);
+    });
+    let buttonTakeGear = createNormalButton2("Take", width-2.5*m_cw+3*m_bw, i*height/5, m_bw, m_bh/2);
+    buttonTakeGear.mousePressed(() => {
+      takeGearFromPlayer(i);
     });
   }
 
@@ -342,6 +346,7 @@ function setup() {
       m_decks[DECK_STORM].addCard(card);
     }
     m_decks[DECK_STORM].shuffle();
+    update();
   });
 
   // storm meter buttons
@@ -394,7 +399,7 @@ function restoreData(data, isSavedGame = false) {
   createDecksFromServerData(data.decks);
   createShipTokensFromServerData(data.shipTokens);
   m_numSandLeft = data.numSandLeft;
-
+  m_stormMeterValue = data.stormMeterValue;
 }
 
 function saveGame() {
@@ -448,6 +453,23 @@ function getGear(playerNum) {
   // m_players[playerNum].gearCards.push(card);
   m_decks[playerNum].addCard(card);
   update();
+}
+
+function takeGearFromPlayer(playerNum) {
+  let needUpdate = false;
+  let cards = findSelectedCards();
+  for (let card of cards) {
+    if (card.setIndex == SET_GEAR) {
+      let idx = m_decks[card.deckIndex].cards.indexOf(card);
+      if (idx != -1) {
+        let rets = m_decks[card.deckIndex].cards.splice(idx, 1);
+        rets[0].selected = false;
+        m_decks[playerNum].addCard(rets[0]);
+        needUpdate = true;
+      }
+    }
+  }
+  if (needUpdate) update();
 }
 
 function changeWater(playerNum, value) {
@@ -515,8 +537,10 @@ function addSand() {
   console.log('cards = ' , cards);
   
   for (let i = 0; i < cards.length; i++) {
-    cards[i].numSand++;
-    m_numSandLeft--;
+    if (cards[i].setIndex == SET_TILES) {
+      cards[i].numSand++;
+      m_numSandLeft--;
+    }
   }
 
   if (cards.length > 0) update();
@@ -543,6 +567,29 @@ function findStormSpiralIndex() {
   }
   return -1;
 
+}
+
+function moveTokensWithTile(tileIndex, xdelta, ydelta) {
+  let tokensToMove = [];
+  let tile = m_decks[DECK_TILES].cards[tileIndex];
+  let tileW = m_decks[DECK_TILES].cw;
+  let tileH = m_decks[DECK_TILES].ch;
+  for (let token of m_shipTokens) {
+    if (token.x >= tile.x && token.x <= tile.x+tileW && token.y >= tile.y && token.y <= tile.y+tileH){
+      tokensToMove.push(token);
+    }
+  }
+  for (let player of m_players) {
+    let token = player.token;
+    if (token.x >= tile.x && token.x <= tile.x+tileW && token.y >= tile.y && token.y <= tile.y+tileH){
+      tokensToMove.push(token);
+    }
+  }
+
+  for (let token of tokensToMove) {
+    token.x += xdelta;
+    token.y += ydelta;
+  }
 }
 
 function moveBase() {
@@ -588,9 +635,12 @@ function moveUp() {
     let temp = m_decks[DECK_TILES].cards[indexInDeck];
     m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
     m_decks[DECK_TILES].cards[spiralIndex] = temp;
+    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
   } else {
     m_messageP.html('Storm spiral must be directly above the selected card');
   }
+  // moveTokensWithTile(indexInDeck, 0, -m_decks[DECK_TILES].ch*1.09375);
+  moveTokensWithTile(spiralIndex, 0, -m_decks[DECK_TILES].ch*TILE_SPACING);
   unselectAllCards();
 
   update();
@@ -610,9 +660,11 @@ function moveDown() {
     let temp = m_decks[DECK_TILES].cards[indexInDeck];
     m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
     m_decks[DECK_TILES].cards[spiralIndex] = temp;
+    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
   } else {
     m_messageP.html('Storm spiral must be directly below the selected card');
   }
+  moveTokensWithTile(spiralIndex, 0, m_decks[DECK_TILES].ch*TILE_SPACING);
   unselectAllCards();
 
   update();
@@ -632,9 +684,11 @@ function moveLeft() {
     let temp = m_decks[DECK_TILES].cards[indexInDeck];
     m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
     m_decks[DECK_TILES].cards[spiralIndex] = temp;
+    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
   } else {
     m_messageP.html('Storm spiral must be directly left of the selected card');
   }
+  moveTokensWithTile(spiralIndex, -m_decks[DECK_TILES].ch*TILE_SPACING, 0);
   unselectAllCards();
 
   update();
@@ -654,9 +708,11 @@ function moveRight() {
     let temp = m_decks[DECK_TILES].cards[indexInDeck];
     m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
     m_decks[DECK_TILES].cards[spiralIndex] = temp;
+    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
   } else {
     m_messageP.html('Storm spiral must be directly right of the selected card');
   }
+  moveTokensWithTile(spiralIndex, m_decks[DECK_TILES].ch*TILE_SPACING, 0);
   unselectAllCards();
 
   update();
@@ -795,6 +851,11 @@ function createShipTokensFromServerData(data) {
 
 }  // createShipTokensFromServerData()
 
+function resetServer() {
+  let data = {};
+  m_socket.emit('resetServer', data);
+}
+
 // emit all the players and the table to the server
 function update(isSavedGame = false) {
   if (m_initialized) {
@@ -821,6 +882,7 @@ function update(isSavedGame = false) {
       decks: m_decks,
       shipTokens: m_shipTokens,
       numSandLeft: m_numSandLeft,
+      stormMeterValue: m_stormMeterValue,
     };
     // m_socket.emit('update', data);
     if (!isSavedGame) m_socket.emit('update', data);
@@ -842,7 +904,7 @@ function draw() {
   drawLayout();
 
   // tiles
-  m_decks[DECK_TILES].show(275*m_s, 25*m_s, 1.09375, 0, 5);
+  m_decks[DECK_TILES].show(275*m_s, 25*m_s, TILE_SPACING, 0, 5);
 
   // players
   for (player of m_players) {
