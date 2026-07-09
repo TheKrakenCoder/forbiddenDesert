@@ -9,6 +9,7 @@ class Card {
     this.facedown = true;
     this.selected = false;
     this.numSand = 0;
+    this.distanceFromSpiral = 0;
   }
 
   show() {
@@ -92,6 +93,7 @@ class Card {
     this.facedown = data.facedown;
     this.selected = data.selected;
     this.numSand = data.numSand;
+    this.distanceFromSpiral = data.distanceFromSpiral;
   }
 
 }

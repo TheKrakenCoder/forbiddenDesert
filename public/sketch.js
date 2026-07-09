@@ -592,14 +592,30 @@ function moveTokensWithTile(tileIndex, xdelta, ydelta) {
   }
 }
 
-function moveBase() {
+// This function now does a lot of what moveBase does.  This function was added afterwards
+// to allow multiple cards to be moved at once.  I did not want to rewrite the existing code.
+function calculateDistanceFromSpiral(cards) {
+  let spiralIndex = findStormSpiralIndex();
+  let ixSpiral = spiralIndex % 5;
+  let iySpiral = floor(spiralIndex / 5);
+  for (let card of cards) {
+     let deck = m_decks[card.deckIndex];
+     let indexInDeck = deck.findIndexInDeck(card);
+     let ix = indexInDeck % 5;
+     let iy = floor(indexInDeck / 5);
+     card.distanceFromSpiral = abs(ixSpiral-ix) + abs(iySpiral-iy);
+  }
+}
+
+function moveBase(card) {
   let indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral;
 
-  let cards = findSelectedCards();
-  if (cards.length != 1) {
-    m_messageP.html('You can only move exactly one card');
-    return [-1];
-  }
+  let cards = [card];
+  // let cards = findSelectedCards();
+  // if (cards.length != 1) {
+  //   m_messageP.html('You can only move exactly one card');
+  //   return [-1];
+  // }
   let deck = m_decks[cards[0].deckIndex];
   if (deck.deckIndex != DECK_TILES) {
     m_messageP.html('You can only move a tile');
@@ -608,12 +624,12 @@ function moveBase() {
   indexInDeck = deck.findIndexInDeck(cards[0]);
   ix = indexInDeck % 5;
   iy = floor(indexInDeck / 5);
-  console.log('ix, iy = ' , ix, iy);
+  // console.log('ix, iy = ' , ix, iy);
 
   spiralIndex = findStormSpiralIndex();
   ixSpiral = spiralIndex % 5;
   iySpiral = floor(spiralIndex / 5);
-  console.log('ixs, iys = ' , ixSpiral, iySpiral);
+  // console.log('ixs, iys = ' , ixSpiral, iySpiral);
 
   // unselectAllCards();
 
@@ -622,102 +638,191 @@ function moveBase() {
 }
 
 function moveUp() {
-  let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase();
-  if (error == -1) {
-    console.log('error in moveBase()');
-    unselectAllCards();
-    update();
-    return;
+  let cards = findSelectedCards();
+  calculateDistanceFromSpiral(cards);
+  cards.sort((a, b) => {return a.distanceFromSpiral - b.distanceFromSpiral});
+  console.log(cards)
+
+  for (let i = 0; i < cards.length; i++) {
+    let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase(cards[i]);
+    if (error == -1) {
+      console.log('error in moveBase()');
+      unselectAllCards();
+      update();
+      return;
+    }
+
+    // move up
+    if (iy > 0 && iySpiral == (iy-1) && ix == ixSpiral) {
+      let temp = m_decks[DECK_TILES].cards[indexInDeck];
+      m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
+      m_decks[DECK_TILES].cards[spiralIndex] = temp;
+      m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
+    } else {
+      m_messageP.html('Storm spiral must be directly above the selected card');
+    }
+    // moveTokensWithTile(indexInDeck, 0, -m_decks[DECK_TILES].ch*1.09375);
+    moveTokensWithTile(spiralIndex, 0, -m_decks[DECK_TILES].ch*TILE_SPACING);
+
+    cards[i].selected = false;  
   }
 
-  // move up
-  if (iy > 0 && iySpiral == (iy-1) && ix == ixSpiral) {
-    let temp = m_decks[DECK_TILES].cards[indexInDeck];
-    m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
-    m_decks[DECK_TILES].cards[spiralIndex] = temp;
-    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
-  } else {
-    m_messageP.html('Storm spiral must be directly above the selected card');
-  }
-  // moveTokensWithTile(indexInDeck, 0, -m_decks[DECK_TILES].ch*1.09375);
-  moveTokensWithTile(spiralIndex, 0, -m_decks[DECK_TILES].ch*TILE_SPACING);
   unselectAllCards();
 
   update();
   
 }
-function moveDown() {
-  let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase();
-  if (error == -1) {
-    console.log('error in moveBase()');
-    unselectAllCards();
-    update();
-    return;
-  }
 
-  // move up
-  if (iy < 5 && iySpiral == (iy+1) && ix == ixSpiral) {
-    let temp = m_decks[DECK_TILES].cards[indexInDeck];
-    m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
-    m_decks[DECK_TILES].cards[spiralIndex] = temp;
-    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
-  } else {
-    m_messageP.html('Storm spiral must be directly below the selected card');
+
+function moveDown() {
+  let cards = findSelectedCards();
+  calculateDistanceFromSpiral(cards);
+  cards.sort((a, b) => {return a.distanceFromSpiral - b.distanceFromSpiral});
+
+  for (let i = 0; i < cards.length; i++) {
+    let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase(cards[i]);
+    if (error == -1) {
+      console.log('error in moveBase()');
+      unselectAllCards();
+      update();
+      return;
+    }
+
+    // move up
+    if (iy < 5 && iySpiral == (iy+1) && ix == ixSpiral) {
+      let temp = m_decks[DECK_TILES].cards[indexInDeck];
+      m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
+      m_decks[DECK_TILES].cards[spiralIndex] = temp;
+      m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
+    } else {
+      m_messageP.html('Storm spiral must be directly below the selected card');
+    }
+    moveTokensWithTile(spiralIndex, 0, m_decks[DECK_TILES].ch*TILE_SPACING);
+    cards[i].selected = false;  
   }
-  moveTokensWithTile(spiralIndex, 0, m_decks[DECK_TILES].ch*TILE_SPACING);
   unselectAllCards();
 
   update();
   
 }
 function moveLeft() {
-  let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase();
-  if (error == -1) {
-    console.log('error in moveBase()');
-    unselectAllCards();
-    update();
-    return;
-  }
+  let cards = findSelectedCards();
+  calculateDistanceFromSpiral(cards);
+  cards.sort((a, b) => {return a.distanceFromSpiral - b.distanceFromSpiral});
 
-  // move left
-  if (ix > 0 && ixSpiral == (ix-1) && iy == iySpiral) {
-    let temp = m_decks[DECK_TILES].cards[indexInDeck];
-    m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
-    m_decks[DECK_TILES].cards[spiralIndex] = temp;
-    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
-  } else {
-    m_messageP.html('Storm spiral must be directly left of the selected card');
+  for (let i = 0; i < cards.length; i++) {
+    let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase(cards[i]);
+    if (error == -1) {
+      console.log('error in moveBase()');
+      unselectAllCards();
+      update();
+      return;
+    }
+
+    // move left
+    if (ix > 0 && ixSpiral == (ix-1) && iy == iySpiral) {
+      let temp = m_decks[DECK_TILES].cards[indexInDeck];
+      m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
+      m_decks[DECK_TILES].cards[spiralIndex] = temp;
+      m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
+    } else {
+      m_messageP.html('Storm spiral must be directly left of the selected card');
+    }
+    moveTokensWithTile(spiralIndex, -m_decks[DECK_TILES].ch*TILE_SPACING, 0);
+    cards[i].selected = false;  
   }
-  moveTokensWithTile(spiralIndex, -m_decks[DECK_TILES].ch*TILE_SPACING, 0);
   unselectAllCards();
 
   update();
   
 }
 function moveRight() {
-  let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase();
-  if (error == -1) {
-    console.log('error in moveBase()');
-    unselectAllCards();
-    update();
-    return;
-  }
+  let cards = findSelectedCards();
+  calculateDistanceFromSpiral(cards);
+  cards.sort((a, b) => {return a.distanceFromSpiral - b.distanceFromSpiral});
 
-  // move right
-  if (ix < 5 && ixSpiral == (ix+1) && iy == iySpiral) {
-    let temp = m_decks[DECK_TILES].cards[indexInDeck];
-    m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
-    m_decks[DECK_TILES].cards[spiralIndex] = temp;
-    m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
-  } else {
-    m_messageP.html('Storm spiral must be directly right of the selected card');
+  for (let i = 0; i < cards.length; i++) {
+    let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase(cards[i]);
+    if (error == -1) {
+      console.log('error in moveBase()');
+      unselectAllCards();
+      update();
+      return;
+    }
+
+    // move right
+    if (ix < 5 && ixSpiral == (ix+1) && iy == iySpiral) {
+      let temp = m_decks[DECK_TILES].cards[indexInDeck];
+      m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
+      m_decks[DECK_TILES].cards[spiralIndex] = temp;
+      m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
+    } else {
+      m_messageP.html('Storm spiral must be directly right of the selected card');
+    }
+    moveTokensWithTile(spiralIndex, m_decks[DECK_TILES].ch*TILE_SPACING, 0);
+    cards[i].selected = false;  
   }
-  moveTokensWithTile(spiralIndex, m_decks[DECK_TILES].ch*TILE_SPACING, 0);
   unselectAllCards();
 
   update();
   
 }
+
+// function moveBaseOrig() {
+//   let indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral;
+
+//   let cards = findSelectedCards();
+//   if (cards.length != 1) {
+//     m_messageP.html('You can only move exactly one card');
+//     return [-1];
+//   }
+//   let deck = m_decks[cards[0].deckIndex];
+//   if (deck.deckIndex != DECK_TILES) {
+//     m_messageP.html('You can only move a tile');
+//     return [-1];
+//   }
+//   indexInDeck = deck.findIndexInDeck(cards[0]);
+//   ix = indexInDeck % 5;
+//   iy = floor(indexInDeck / 5);
+//   console.log('ix, iy = ' , ix, iy);
+
+//   spiralIndex = findStormSpiralIndex();
+//   ixSpiral = spiralIndex % 5;
+//   iySpiral = floor(spiralIndex / 5);
+//   console.log('ixs, iys = ' , ixSpiral, iySpiral);
+
+//   // unselectAllCards();
+
+//   return [0, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral];
+
+// }
+
+// function moveUpOrig() {
+//   let [error, indexInDeck, ix, iy, spiralIndex, ixSpiral, iySpiral] = moveBase();
+//   if (error == -1) {
+//     console.log('error in moveBase()');
+//     unselectAllCards();
+//     update();
+//     return;
+//   }
+
+//   // move up
+//   if (iy > 0 && iySpiral == (iy-1) && ix == ixSpiral) {
+//     let temp = m_decks[DECK_TILES].cards[indexInDeck];
+//     m_decks[DECK_TILES].cards[indexInDeck] = m_decks[DECK_TILES].cards[spiralIndex];
+//     m_decks[DECK_TILES].cards[spiralIndex] = temp;
+//     m_decks[DECK_TILES].cards[spiralIndex].numSand++;  // automatically increase the sand on the moved tile
+//   } else {
+//     m_messageP.html('Storm spiral must be directly above the selected card');
+//   }
+//   // moveTokensWithTile(indexInDeck, 0, -m_decks[DECK_TILES].ch*1.09375);
+//   moveTokensWithTile(spiralIndex, 0, -m_decks[DECK_TILES].ch*TILE_SPACING);
+//   unselectAllCards();
+
+//   update();
+  
+// }
+
 
 // returns the Card if one is found
 function findCardUnderCursor() {
